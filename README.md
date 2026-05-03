@@ -4,6 +4,8 @@ A lightweight Progressive Web App (PWA) that displays your current GPS position 
 
 **Live app:** `https://yourusername.github.io/locator_app/`
 
+<img src="screenshot.jpg" alt="Field Locator running on Android" width="320">
+
 ---
 
 ## Features
