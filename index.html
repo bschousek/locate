@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Locator">
+  <title>Field Locator</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent: #00d4aa;
+      --accent2: #ff7f3f;
+      --warn: #ffd166;
+      --danger: #ef476f;
+      --mono: 'Share Tech Mono', monospace;
+      --sans: 'Barlow Condensed', sans-serif;
+      --radius: 4px;
+      --transition: 0.2s ease;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1117;
+        --surface: #181c27;
+        --border: #2a2f3d;
+        --label: #6b7a9a;
+        --value: #e8ecf5;
+        --header-bg: #0a0d12;
+        --divider: #222636;
+      }
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f0f2f7;
+        --surface: #ffffff;
+        --border: #d0d5e4;
+        --label: #7a839e;
+        --value: #1a1f2e;
+        --header-bg: #e2e6f0;
+        --divider: #dde1ed;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--value);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .app-title {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--label);
+      flex-shrink: 0;
+    }
+    .app-title span { color: var(--accent); }
+
+    /* ── CLOCK BLOCK ── */
+    .clock-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0;
+    }
+
+    #utc-clock {
+      font-family: var(--mono);
+      font-size: 28px;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+
+    #utc-date {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--label);
+      letter-spacing: 0.06em;
+      margin-top: 1px;
+    }
+
+    .clock-rule {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 6px 0 5px;
+    }
+
+    #local-clock {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--value);
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+
+    #local-date {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--label);
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* ── STATUS BAR ── */
+    #status-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--sans);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: var(--label);
+      text-transform: uppercase;
+    }
+
+    #status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--label);
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+    #status-dot.acquiring { background: var(--warn); animation: pulse 1.2s infinite; }
+    #status-dot.active    { background: var(--accent); animation: none; }
+    #status-dot.error     { background: var(--danger); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── MAIN GRID ── */
+    main {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── DATA CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 7px 14px;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--label);
+      font-family: var(--sans);
+      font-weight: 600;
+    }
+
+    .card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .field {
+      padding: 12px 14px;
+      border-right: 1px solid var(--divider);
+      border-bottom: 1px solid var(--divider);
+    }
+    .field:nth-child(even)  { border-right: none; }
+    .field:nth-last-child(-n+2) { border-bottom: none; }
+    .field.full {
+      grid-column: 1 / -1;
+      border-right: none;
+    }
+    /* last .full row */
+    .field.full:last-child { border-bottom: none; }
+
+    .field-label {
+      font-family: var(--sans);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--label);
+      margin-bottom: 4px;
+    }
+
+    .field-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--value);
+      letter-spacing: 0.03em;
+      line-height: 1.1;
+      transition: color var(--transition);
+    }
+
+    .field-value.big {
+      font-size: 26px;
+    }
+
+    .field-value.accent { color: var(--accent); }
+    .field-value.stale  { color: var(--label); }
+
+    .field-sub {
+      font-family: var(--sans);
+      font-size: 11px;
+      color: var(--label);
+      margin-top: 2px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── SUN ROW ── */
+    .sun-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .sun-item {
+      flex: 1;
+      padding: 12px 14px;
+      border-right: 1px solid var(--divider);
+    }
+    .sun-item:last-child { border-right: none; }
+
+    /* ── ACCURACY BADGE ── */
+    .acc-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-family: var(--sans);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      color: var(--accent);
+      margin-top: 4px;
+    }
+    .acc-badge.warn {
+      background: color-mix(in srgb, var(--warn) 12%, transparent);
+      color: var(--warn);
+    }
+
+    /* ── REFRESH BUTTON ── */
+    .btn-row {
+      padding: 4px 16px 16px;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    #refresh-btn {
+      width: 100%;
+      padding: 13px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      color: var(--accent);
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background var(--transition), color var(--transition);
+    }
+    #refresh-btn:active {
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+    #refresh-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-icon { font-size: 16px; }
+
+    /* ── COUNTDOWN ── */
+    #next-refresh {
+      text-align: center;
+      font-family: var(--sans);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--label);
+      padding-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    /* ── OFFLINE BANNER ── */
+    #offline-banner {
+      display: none;
+      background: color-mix(in srgb, var(--warn) 15%, transparent);
+      border-bottom: 1px solid var(--warn);
+      color: var(--warn);
+      text-align: center;
+      padding: 6px;
+      font-family: var(--sans);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    body.offline #offline-banner { display: block; }
+
+    /* ── PRECISION LINES (decorative) ── */
+    .crosshair {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 0; height: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.025;
+    }
+    .crosshair::before, .crosshair::after {
+      content: '';
+      position: absolute;
+      background: var(--accent);
+    }
+    .crosshair::before { width: 1px; height: 100vh; top: -50vh; left: 0; }
+    .crosshair::after  { height: 1px; width: 100vw; left: -50vw; top: 0; }
+  </style>
+</head>
+<body>
+
+<div id="offline-banner">⚠ Offline — county/state unavailable</div>
+<div class="crosshair"></div>
+
+<header>
+  <div class="app-title">Field <span>Locator</span></div>
+  <div class="clock-block">
+    <div id="utc-clock">--:--:-- Z</div>
+    <div id="utc-date">---- --- --</div>
+    <div class="clock-rule"></div>
+    <div id="local-clock">--:--:--</div>
+    <div id="local-date">---- --- -- · ---</div>
+  </div>
+</header>
+
+<div id="status-bar">
+  <div id="status-dot"></div>
+  <span id="status-text">Waiting for GPS…</span>
+</div>
+
+<main>
+
+  <!-- Coordinates -->
+  <div class="card">
+    <div class="card-header">Position</div>
+    <div class="card-body">
+      <div class="field">
+        <div class="field-label">Latitude</div>
+        <div class="field-value" id="lat">—</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Longitude</div>
+        <div class="field-value" id="lon">—</div>
+      </div>
+      <div class="field full">
+        <div class="field-label">Maidenhead Grid</div>
+        <div class="field-value big accent" id="grid">——</div>
+        <div class="field-sub" id="accuracy-sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sun -->
+  <div class="card">
+    <div class="card-header">Sun (local time)</div>
+    <div class="sun-row">
+      <div class="sun-item">
+        <div class="field-label">Sunrise</div>
+        <div class="field-value" id="sunrise">—</div>
+      </div>
+      <div class="sun-item">
+        <div class="field-label">Sunset</div>
+        <div class="field-value" id="sunset">—</div>
+      </div>
+      <div class="sun-item">
+        <div class="field-label">Day Length</div>
+        <div class="field-value" id="daylength">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location -->
+  <div class="card">
+    <div class="card-header">Location</div>
+    <div class="card-body">
+      <div class="field">
+        <div class="field-label">State</div>
+        <div class="field-value" id="state">—</div>
+      </div>
+      <div class="field">
+        <div class="field-label">County</div>
+        <div class="field-value" id="county">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timestamp -->
+  <div class="card">
+    <div class="card-header">Last Fix</div>
+    <div class="card-body">
+      <div class="field full">
+        <div class="field-label">Updated</div>
+        <div class="field-value" id="last-fix" style="font-size:14px">—</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="btn-row">
+  <div id="next-refresh"></div>
+  <button id="refresh-btn" onclick="manualRefresh()">
+    <span class="btn-icon">⟳</span> Refresh Location
+  </button>
+</div>
+
+<script>
+// ── CLOCKS ───────────────────────────────────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function getTzAbbr() {
+  // Extract short timezone name e.g. "CDT", "CST", "EST"
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' })
+      .formatToParts(new Date())
+      .find(p => p.type === 'timeZoneName')?.value || '';
+  } catch { return ''; }
+}
+
+function tickClock() {
+  const now = new Date();
+
+  // UTC
+  const uh = pad(now.getUTCHours());
+  const um = pad(now.getUTCMinutes());
+  const us = pad(now.getUTCSeconds());
+  document.getElementById('utc-clock').textContent = `${uh}:${um}:${us} Z`;
+  document.getElementById('utc-date').textContent  =
+    `${now.getUTCFullYear()} ${MONTHS[now.getUTCMonth()]} ${pad(now.getUTCDate())}`;
+
+  // Local
+  const lh = pad(now.getHours());
+  const lm = pad(now.getMinutes());
+  const ls = pad(now.getSeconds());
+  document.getElementById('local-clock').textContent = `${lh}:${lm}:${ls}`;
+  document.getElementById('local-date').textContent  =
+    `${now.getFullYear()} ${MONTHS[now.getMonth()]} ${pad(now.getDate())} · ${getTzAbbr()}`;
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ── MAIDENHEAD GRID ───────────────────────────────────────────────────────
+function toMaidenhead(lat, lon) {
+  const A = 'ABCDEFGHIJKLMNOPQRSTUVWX';
+  let lo = lon + 180, la = lat + 90;
+  const f1 = Math.floor(lo / 20);
+  const f2 = Math.floor(la / 10);
+  const s1 = Math.floor((lo % 20) / 2);
+  const s2 = Math.floor(la % 10);
+  const ss1 = Math.floor((lo % 2) * 12);
+  const ss2 = Math.floor((la % 1) * 24);
+  return A[f1] + A[f2] + s1 + s2 + A[ss1].toLowerCase() + A[ss2].toLowerCase();
+}
+
+// ── SUNRISE / SUNSET (NOAA algorithm) ────────────────────────────────────
+function calcSun(lat, lon, date) {
+  const r = d => d * Math.PI / 180;
+  const d = a => a * 180 / Math.PI;
+
+  const JD = date.getTime() / 86400000 + 2440587.5;
+  const JC = (JD - 2451545) / 36525;
+
+  const gmls = (280.46646 + JC * (36000.76983 + JC * 0.0003032)) % 360;
+  const gmas = r(357.52911 + JC * (35999.05029 - 0.0001537 * JC));
+  const eeo  = 0.016708634 - JC * (0.000042037 + 0.0000001267 * JC);
+  const seqc = Math.sin(gmas) * (1.914602 - JC * (0.004817 + 0.000014 * JC))
+             + Math.sin(2 * gmas) * (0.019993 - 0.000101 * JC)
+             + Math.sin(3 * gmas) * 0.000289;
+  const stl  = gmls + seqc;
+  const sal  = stl - 0.00569 - 0.00478 * Math.sin(r(125.04 - 1934.136 * JC));
+  const moe  = r(23 + (26 + ((21.448 - JC * (46.815 + JC * (0.00059 - JC * 0.001813)))) / 60) / 60);
+  const oc   = moe + r(0.00256 * Math.cos(r(125.04 - 1934.136 * JC)));
+  const decl = d(Math.asin(Math.sin(oc) * Math.sin(r(sal))));
+
+  const vary = Math.tan(oc/2) * Math.tan(oc/2);
+  const eqT  = 4 * d(vary * Math.sin(2*r(gmls))
+    - 2 * eeo * Math.sin(gmas)
+    + 4 * eeo * vary * Math.sin(gmas) * Math.cos(2*r(gmls))
+    - 0.5 * vary * vary * Math.sin(4*r(gmls))
+    - 1.25 * eeo * eeo * Math.sin(2*gmas));
+
+  const cosHA = (Math.cos(r(90.833)) / (Math.cos(r(lat)) * Math.cos(r(decl))))
+              - Math.tan(r(lat)) * Math.tan(r(decl));
+
+  if (cosHA < -1 || cosHA > 1) {
+    return { sunrise: 'no rise', sunset: 'no set', dayLength: '—' };
+  }
+
+  const HA = d(Math.acos(cosHA));
+  const solarNoonLST = (720 - 4 * lon - eqT) / 1440;
+  const sunriseMin   = (solarNoonLST - HA * 4 / 1440) * 1440;
+  const sunsetMin    = (solarNoonLST + HA * 4 / 1440) * 1440;
+
+  // Convert UTC minutes-from-midnight → local time string
+  // getTimezoneOffset() = UTC - local (minutes); subtract to get local
+  const tzOff = date.getTimezoneOffset();
+  const p2 = n => String(n).padStart(2,'0');
+  const fmtLocal = utcMins => {
+    const local = ((utcMins - tzOff) % 1440 + 1440) % 1440;
+    return `${p2(Math.floor(local / 60))}:${p2(Math.floor(local % 60))}`;
+  };
+
+  const dayMins = sunsetMin - sunriseMin;
+  const dlH = Math.floor(dayMins / 60);
+  const dlM = Math.floor(dayMins % 60);
+
+  return {
+    sunrise:  fmtLocal(sunriseMin),
+    sunset:   fmtLocal(sunsetMin),
+    dayLength: `${dlH}h ${String(dlM).padStart(2,'0')}m`
+  };
+}
+
+// ── NOMINATIM REVERSE GEOCODER ────────────────────────────────────────────
+async function getStateCounty(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse`
+      + `?lat=${lat.toFixed(6)}&lon=${lon.toFixed(6)}&format=json&zoom=10&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: { 'Accept-Language': 'en-US,en' },
+      signal: AbortSignal.timeout(8000)
+    });
+    const data = await res.json();
+    const addr = data?.address;
+    if (addr) {
+      const state  = addr.state  || addr.region      || '—';
+      const county = addr.county || addr.municipality || addr.city || '—';
+      return { state, county };
+    }
+  } catch (e) { /* offline or timeout */ }
+  return null;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let autoTimer = null;
+let countdownTimer = null;
+let secondsUntilNext = 0;
+const INTERVAL = 30; // seconds between auto-refreshes
+let lastGeo = null;
+
+// ── SET STATUS ────────────────────────────────────────────────────────────
+function setStatus(state, text) {
+  const dot  = document.getElementById('status-dot');
+  const span = document.getElementById('status-text');
+  dot.className = state === 'acquiring' ? 'acquiring'
+                : state === 'active'    ? 'active'
+                : state === 'error'     ? 'error' : '';
+  span.textContent = text;
+}
+
+// ── DISPLAY RESULTS ───────────────────────────────────────────────────────
+function displayPosition(pos) {
+  const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+  lastGeo = { lat, lon };
+
+  document.getElementById('lat').textContent   = lat.toFixed(6);
+  document.getElementById('lon').textContent   = lon.toFixed(6);
+  document.getElementById('grid').textContent  = toMaidenhead(lat, lon);
+
+  const accM = Math.round(accuracy);
+  const badge = document.getElementById('accuracy-sub');
+  badge.innerHTML = `<span class="acc-badge${accM > 100 ? ' warn' : ''}">&pm; ${accM} m accuracy</span>`;
+
+  const sun = calcSun(lat, lon, new Date());
+  document.getElementById('sunrise').textContent   = sun.sunrise;
+  document.getElementById('sunset').textContent    = sun.sunset;
+  document.getElementById('daylength').textContent = sun.dayLength;
+
+  const now = new Date();
+  document.getElementById('last-fix').textContent =
+    now.toLocaleTimeString() + '  ·  ' + now.toLocaleDateString();
+
+  setStatus('active', `Fix acquired — ± ${accM} m`);
+  document.getElementById('refresh-btn').disabled = false;
+
+  // Geocode async
+  document.getElementById('state').textContent  = '…';
+  document.getElementById('county').textContent = '…';
+  getStateCounty(lat, lon).then(result => {
+    if (result) {
+      document.getElementById('state').textContent  = result.state;
+      document.getElementById('county').textContent = result.county;
+    } else {
+      document.getElementById('state').textContent  = navigator.onLine ? 'n/a' : 'offline';
+      document.getElementById('county').textContent = navigator.onLine ? 'n/a' : 'offline';
+    }
+  });
+}
+
+function displayError(err) {
+  const msgs = {
+    1: 'Location permission denied',
+    2: 'Position unavailable',
+    3: 'GPS timeout'
+  };
+  setStatus('error', msgs[err.code] || 'Location error');
+  document.getElementById('refresh-btn').disabled = false;
+}
+
+// ── FETCH LOCATION ────────────────────────────────────────────────────────
+function fetchLocation() {
+  setStatus('acquiring', 'Acquiring GPS…');
+  document.getElementById('refresh-btn').disabled = true;
+  navigator.geolocation.getCurrentPosition(displayPosition, displayError, {
+    enableHighAccuracy: true,
+    timeout: 12000,
+    maximumAge: 10000
+  });
+}
+
+// ── COUNTDOWN ─────────────────────────────────────────────────────────────
+function startCountdown() {
+  clearInterval(countdownTimer);
+  secondsUntilNext = INTERVAL;
+  const el = document.getElementById('next-refresh');
+  countdownTimer = setInterval(() => {
+    secondsUntilNext--;
+    if (secondsUntilNext <= 0) {
+      el.textContent = '';
+      clearInterval(countdownTimer);
+    } else {
+      el.textContent = `Auto-refresh in ${secondsUntilNext}s`;
+    }
+  }, 1000);
+}
+
+// ── AUTO-REFRESH LOOP ─────────────────────────────────────────────────────
+function scheduleNext() {
+  clearTimeout(autoTimer);
+  startCountdown();
+  autoTimer = setTimeout(() => {
+    fetchLocation();
+    scheduleNext();
+  }, INTERVAL * 1000);
+}
+
+// ── MANUAL REFRESH ────────────────────────────────────────────────────────
+function manualRefresh() {
+  clearTimeout(autoTimer);
+  clearInterval(countdownTimer);
+  document.getElementById('next-refresh').textContent = '';
+  fetchLocation();
+  scheduleNext();
+}
+
+// ── ONLINE / OFFLINE ──────────────────────────────────────────────────────
+window.addEventListener('online',  () => document.body.classList.remove('offline'));
+window.addEventListener('offline', () => document.body.classList.add('offline'));
+if (!navigator.onLine) document.body.classList.add('offline');
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ── KICK OFF ──────────────────────────────────────────────────────────────
+if (!navigator.geolocation) {
+  setStatus('error', 'Geolocation not supported');
+} else {
+  fetchLocation();
+  scheduleNext();
+}
+</script>
+</body>
+</html>
