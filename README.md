@@ -1,6 +1,6 @@
 # Field Locator
 
-A lightweight Progressive Web App (PWA) that displays your current GPS position with a set of field-useful data readouts. Works offline after the first load and can be installed directly to your phone's home screen.
+A lightweight Progressive Web App (PWA) that displays your current GPS position with a set of field-useful data readouts. Works offline after the first load and can be installed directly to your phone's home screen. (County and State reverse geocoding require an internet connection.)
 
 **Live app:** `https://yourusername.github.io/locator_app/`
 
