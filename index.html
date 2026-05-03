@@ -280,7 +280,7 @@
       color: var(--warn);
     }
 
-    /* ── REFRESH BUTTON ── */
+    /* ── BOTTOM BAR ── */
     .btn-row {
       padding: 4px 16px 16px;
       max-width: 520px;
@@ -288,9 +288,9 @@
       margin: 0 auto;
     }
 
-    #refresh-btn {
-      width: 100%;
-      padding: 13px;
+    #refresh-select {
+      flex: 1;
+      padding: 13px 14px;
       background: transparent;
       border: 1px solid var(--accent);
       border-radius: var(--radius);
@@ -298,24 +298,28 @@
       font-family: var(--sans);
       font-weight: 600;
       font-size: 13px;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background var(--transition), color var(--transition);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300d4aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      transition: background-color var(--transition);
     }
-    #refresh-btn:active {
-      background: color-mix(in srgb, var(--accent) 15%, transparent);
+    #refresh-select:focus { outline: none; }
+    #refresh-select option {
+      background: var(--surface);
+      color: var(--value);
+      font-size: 14px;
+      letter-spacing: 0;
+      text-transform: none;
     }
-    #refresh-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    #refresh-select.firing {
+      background-color: color-mix(in srgb, var(--accent) 15%, transparent);
     }
-
-    .btn-icon { font-size: 16px; }
 
     /* ── COUNTDOWN ── */
     #next-refresh {
@@ -345,14 +349,14 @@
 
     /* ── HELP BUTTON ── */
     #help-btn {
-      background: none;
+      background: transparent;
       border: 1px solid var(--border);
-      border-radius: 50%;
-      width: 28px; height: 28px;
+      border-radius: var(--radius);
+      width: 48px;
       color: var(--label);
       font-family: var(--sans);
       font-weight: 600;
-      font-size: 14px;
+      font-size: 16px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -360,7 +364,7 @@
       flex-shrink: 0;
       transition: border-color var(--transition), color var(--transition);
     }
-    #help-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #help-btn:active { border-color: var(--accent); color: var(--accent); }
 
     /* ── HELP MODAL ── */
     #help-overlay {
@@ -515,10 +519,7 @@
 <div class="crosshair"></div>
 
 <header>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <button id="help-btn" onclick="openHelp()" title="Help">?</button>
-    <div class="app-title">Field <span>Locator</span></div>
-  </div>
+  <div class="app-title">Field <span>Locator</span></div>
   <div class="clock-block">
     <div id="utc-clock">--:--:-- Z</div>
     <div id="utc-date">---- --- --</div>
@@ -536,6 +537,15 @@
       <button id="help-close" onclick="closeHelp()">✕</button>
     </div>
     <div class="help-body">
+
+      <!-- Copyright -->
+      <div style="text-align:center; padding: 4px 0 8px;">
+        <div style="font-family:var(--sans); font-size:15px; color:var(--value); letter-spacing:0.05em;">
+          © 2026 Brian Schousek <span style="color:var(--accent);">KB9TBB</span>
+        </div>
+      </div>
+
+      <div class="help-rule"></div>
 
       <!-- iPhone -->
       <div>
@@ -627,6 +637,13 @@
         Once installed, Field Locator works <strong>offline</strong> for all features except state &amp; county lookup, which requires a network connection.
       </div>
 
+      <div class="help-rule"></div>
+
+      <div class="help-about" style="font-size:11px;">
+        State &amp; county data © <a href="https://www.openstreetmap.org/copyright" target="_blank" style="color:var(--accent); text-decoration:none;">OpenStreetMap contributors</a>, via Nominatim.
+        Solar calculations based on NOAA algorithms (public domain).
+      </div>
+
     </div>
   </div>
 </div>
@@ -707,9 +724,16 @@
 
 <div class="btn-row">
   <div id="next-refresh"></div>
-  <button id="refresh-btn" onclick="manualRefresh()">
-    <span class="btn-icon">⟳</span> Refresh Location
-  </button>
+  <div style="display:flex;gap:10px;">
+    <select id="refresh-select" onchange="handleRefreshSelect()">
+      <option value="now">⟳  Refresh Now</option>
+      <option value="30" selected>Auto: 30 Seconds</option>
+      <option value="180">Auto: 3 Minutes</option>
+      <option value="1800">Auto: 30 Minutes</option>
+      <option value="0">Auto: Disabled</option>
+    </select>
+    <button id="help-btn" onclick="openHelp()" title="Help">?</button>
+  </div>
 </div>
 
 <script>
@@ -856,11 +880,11 @@ async function getStateCounty(lat, lon) {
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
-let autoTimer = null;
+let autoTimer      = null;
 let countdownTimer = null;
 let secondsUntilNext = 0;
-const INTERVAL = 30; // seconds between auto-refreshes
-let lastGeo = null;
+let lastGeo        = null;
+let currentInterval = 30; // seconds; 0 = disabled
 
 // ── SET STATUS ────────────────────────────────────────────────────────────
 function setStatus(state, text) {
@@ -895,7 +919,6 @@ function displayPosition(pos) {
     now.toLocaleTimeString() + '  ·  ' + now.toLocaleDateString();
 
   setStatus('active', `Fix acquired — ± ${accM} m`);
-  document.getElementById('refresh-btn').disabled = false;
 
   // Geocode async
   document.getElementById('state').textContent  = '…';
@@ -912,19 +935,13 @@ function displayPosition(pos) {
 }
 
 function displayError(err) {
-  const msgs = {
-    1: 'Location permission denied',
-    2: 'Position unavailable',
-    3: 'GPS timeout'
-  };
+  const msgs = { 1: 'Location permission denied', 2: 'Position unavailable', 3: 'GPS timeout' };
   setStatus('error', msgs[err.code] || 'Location error');
-  document.getElementById('refresh-btn').disabled = false;
 }
 
 // ── FETCH LOCATION ────────────────────────────────────────────────────────
 function fetchLocation() {
   setStatus('acquiring', 'Acquiring GPS…');
-  document.getElementById('refresh-btn').disabled = true;
   navigator.geolocation.getCurrentPosition(displayPosition, displayError, {
     enableHighAccuracy: true,
     timeout: 12000,
@@ -933,38 +950,64 @@ function fetchLocation() {
 }
 
 // ── COUNTDOWN ─────────────────────────────────────────────────────────────
-function startCountdown() {
+function startCountdown(seconds) {
   clearInterval(countdownTimer);
-  secondsUntilNext = INTERVAL;
+  secondsUntilNext = seconds;
   const el = document.getElementById('next-refresh');
+  const fmt = s => s >= 60
+    ? `Auto-refresh in ${Math.floor(s/60)}m ${String(s%60).padStart(2,'0')}s`
+    : `Auto-refresh in ${s}s`;
+  el.textContent = fmt(secondsUntilNext);
   countdownTimer = setInterval(() => {
     secondsUntilNext--;
     if (secondsUntilNext <= 0) {
       el.textContent = '';
       clearInterval(countdownTimer);
     } else {
-      el.textContent = `Auto-refresh in ${secondsUntilNext}s`;
+      el.textContent = fmt(secondsUntilNext);
     }
   }, 1000);
 }
 
-// ── AUTO-REFRESH LOOP ─────────────────────────────────────────────────────
+// ── SCHEDULE NEXT ─────────────────────────────────────────────────────────
 function scheduleNext() {
-  clearTimeout(autoTimer);
-  startCountdown();
-  autoTimer = setTimeout(() => {
-    fetchLocation();
-    scheduleNext();
-  }, INTERVAL * 1000);
-}
-
-// ── MANUAL REFRESH ────────────────────────────────────────────────────────
-function manualRefresh() {
   clearTimeout(autoTimer);
   clearInterval(countdownTimer);
   document.getElementById('next-refresh').textContent = '';
-  fetchLocation();
+  if (currentInterval <= 0) return;
+  startCountdown(currentInterval);
+  autoTimer = setTimeout(() => {
+    fetchLocation();
+    scheduleNext();
+  }, currentInterval * 1000);
+}
+
+// ── DROPDOWN HANDLER ──────────────────────────────────────────────────────
+function handleRefreshSelect() {
+  const sel = document.getElementById('refresh-select');
+  const val = sel.value;
+
+  if (val === 'now') {
+    // Flash the select, fire immediately, restore to current interval option
+    sel.classList.add('firing');
+    setTimeout(() => sel.classList.remove('firing'), 300);
+    // Snap back to whichever interval is current
+    const restoreVal = currentInterval > 0 ? String(currentInterval) : '0';
+    sel.value = restoreVal;
+    clearTimeout(autoTimer);
+    clearInterval(countdownTimer);
+    document.getElementById('next-refresh').textContent = '';
+    fetchLocation();
+    scheduleNext();
+    return;
+  }
+
+  currentInterval = parseInt(val, 10);
   scheduleNext();
+  // If disabled, update status hint
+  if (currentInterval === 0) {
+    document.getElementById('next-refresh').textContent = '';
+  }
 }
 
 // ── ONLINE / OFFLINE ──────────────────────────────────────────────────────
