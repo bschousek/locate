@@ -343,6 +343,153 @@
     }
     body.offline #offline-banner { display: block; }
 
+    /* ── HELP BUTTON ── */
+    #help-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      color: var(--label);
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: border-color var(--transition), color var(--transition);
+    }
+    #help-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── HELP MODAL ── */
+    #help-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+      backdrop-filter: blur(3px);
+    }
+    #help-overlay.open { display: flex; }
+
+    #help-sheet {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90dvh;
+      overflow-y: auto;
+      padding-bottom: env(safe-area-inset-bottom);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .help-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+    }
+    .help-title {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--value);
+    }
+    #help-close {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      color: var(--label);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    #help-close:hover { border-color: var(--danger); color: var(--danger); }
+
+    .help-body { padding: 20px; display: flex; flex-direction: column; gap: 24px; }
+
+    .help-section-title {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .help-section-title .platform-icon { font-size: 18px; }
+
+    .help-steps { display: flex; flex-direction: column; gap: 10px; }
+
+    .help-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .step-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-radius: 3px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text {
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--value);
+      line-height: 1.45;
+    }
+    .step-text em {
+      font-style: normal;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .step-note {
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--label);
+      margin-top: 3px;
+    }
+
+    .help-rule {
+      height: 1px;
+      background: var(--border);
+    }
+
+    .help-about {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--label);
+      line-height: 1.6;
+      text-align: center;
+      padding: 0 10px 4px;
+    }
+
     /* ── PRECISION LINES (decorative) ── */
     .crosshair {
       position: fixed;
@@ -368,7 +515,10 @@
 <div class="crosshair"></div>
 
 <header>
-  <div class="app-title">Field <span>Locator</span></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button id="help-btn" onclick="openHelp()" title="Help">?</button>
+    <div class="app-title">Field <span>Locator</span></div>
+  </div>
   <div class="clock-block">
     <div id="utc-clock">--:--:-- Z</div>
     <div id="utc-date">---- --- --</div>
@@ -377,6 +527,109 @@
     <div id="local-date">---- --- -- · ---</div>
   </div>
 </header>
+
+<!-- Help Modal -->
+<div id="help-overlay" onclick="closeHelpIfOutside(event)">
+  <div id="help-sheet">
+    <div class="help-header">
+      <div class="help-title">Install as App</div>
+      <button id="help-close" onclick="closeHelp()">✕</button>
+    </div>
+    <div class="help-body">
+
+      <!-- iPhone -->
+      <div>
+        <div class="help-section-title">
+          <span class="platform-icon">🍎</span> iPhone &amp; iPad (Safari)
+        </div>
+        <div class="help-steps">
+          <div class="help-step">
+            <span class="step-num">01</span>
+            <div>
+              <div class="step-text">Open this page in <em>Safari</em> — it must be Safari, not Chrome or Firefox.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">02</span>
+            <div>
+              <div class="step-text">Tap the <em>Share</em> button — the box with an arrow pointing up, at the bottom of the screen.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">03</span>
+            <div>
+              <div class="step-text">Scroll down the share sheet and tap <em>Add to Home Screen</em>.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">04</span>
+            <div>
+              <div class="step-text">Confirm the name and tap <em>Add</em>.</div>
+              <div class="step-note">The app icon will appear on your home screen and launch full-screen.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">05</span>
+            <div>
+              <div class="step-text">First launch: when prompted for location, choose <em>Allow While Using App</em>.</div>
+              <div class="step-note">Settings → Privacy → Location Services → Safari if you need to change it later.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-rule"></div>
+
+      <!-- Android -->
+      <div>
+        <div class="help-section-title">
+          <span class="platform-icon">🤖</span> Android (Chrome)
+        </div>
+        <div class="help-steps">
+          <div class="help-step">
+            <span class="step-num">01</span>
+            <div>
+              <div class="step-text">Open this page in <em>Chrome</em> — not Samsung Browser or Firefox.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">02</span>
+            <div>
+              <div class="step-text">Look for an <em>Install app</em> banner at the bottom of the screen and tap it.</div>
+              <div class="step-note">If no banner appears, continue to the next step.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">03</span>
+            <div>
+              <div class="step-text">If no banner, tap the <em>⋮ menu</em> in the top-right corner, then tap <em>Add to Home Screen</em>.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">04</span>
+            <div>
+              <div class="step-text">Tap <em>Add</em> to confirm. The app will appear in your app drawer and on your home screen.</div>
+            </div>
+          </div>
+          <div class="help-step">
+            <span class="step-num">05</span>
+            <div>
+              <div class="step-text">First launch: allow location access when Chrome asks.</div>
+              <div class="step-note">If the install option doesn't appear, reload the page and wait a few seconds for the app to fully initialize, then try again.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-rule"></div>
+
+      <div class="help-about">
+        Once installed, Field Locator works <strong>offline</strong> for all features except state &amp; county lookup, which requires a network connection.
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <div id="status-bar">
   <div id="status-dot"></div>
@@ -460,6 +713,19 @@
 </div>
 
 <script>
+// ── HELP MODAL ────────────────────────────────────────────────────────────
+function openHelp() {
+  document.getElementById('help-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeHelp() {
+  document.getElementById('help-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeHelpIfOutside(e) {
+  if (e.target === document.getElementById('help-overlay')) closeHelp();
+}
+
 // ── CLOCKS ───────────────────────────────────────────────────────────────
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
